@@ -1,0 +1,50 @@
+name: Maine Court Alerts Monitor
+
+on:
+  schedule:
+    # Every 10 minutes, 24/7. GitHub may delay scheduled runs by a few minutes
+    # during heavy load — usually punctual but not atomic.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:  # allow manual runs from the Actions tab
+
+# Prevent overlapping runs (harmless but wasteful).
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # needed to commit the state file back to the repo
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
+        run: python monitor.py
+
+      - name: Commit state changes
+        run: |
+          if [[ -n "$(git status --porcelain state/)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add state/
+            git commit -m "Update alerts state [skip ci]"
+            git push
+          else
+            echo "No state changes to commit."
+          fi
