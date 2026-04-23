@@ -44,7 +44,13 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add state/
             git commit -m "Update alerts state [skip ci]"
-            git push
+            # Rebase on top of any commits that landed while we were running
+            # (e.g., concurrent manual edits). Retry push once.
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push && break
+              echo "Push attempt $i failed, retrying..."
+              sleep 2
+            done
           else
             echo "No state changes to commit."
           fi
