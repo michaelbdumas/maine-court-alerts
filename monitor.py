@@ -186,12 +186,23 @@ def main() -> int:
     if first_run:
         print(f"First run — baseline established with {len(current)} active alert(s).")
         if not args.dry_run:
+            if current:
+                # List each court currently on the alerts page so the user sees
+                # exactly what's being treated as the baseline.
+                court_list = "\n".join(f"• {loc}" for loc in sorted(current))
+                message = (
+                    f"Monitoring initialized. {len(current)} active alert(s) "
+                    f"currently on the page:\n\n{court_list}\n\n"
+                    "You'll be notified of future changes."
+                )
+            else:
+                message = (
+                    "Monitoring initialized. No active alerts on the page right now. "
+                    "You'll be notified when any appear."
+                )
             send_pushover(
                 title="Maine Courts monitor started",
-                message=(
-                    f"Monitoring initialized. {len(current)} active alert(s) "
-                    "on the page right now. You'll be notified of future changes."
-                ),
+                message=message,
                 priority=-1,
             )
             save_state(current)
